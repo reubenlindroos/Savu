@@ -1,18 +1,14 @@
 name: test-environment
 channels:
-  - soft-matter # for pyfftw
   - astra-toolbox
-  - tacaswell
   - dgursoy
 dependencies:
   - python=2.7
   - numpy
   - scipy
-  - pyfftw
   - pytest
   - h5py
   - pep8
-  - pytest
   - mpi4py 
   - scikit-image
   - astra-toolbox
