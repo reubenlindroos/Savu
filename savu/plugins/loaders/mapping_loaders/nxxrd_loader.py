@@ -53,6 +53,13 @@ class NxxrdLoader(BaseMultiModalLoader):
 
         self.add_patterns_based_on_acquisition(data_obj, 'xrd')
 
+# I need to add this in! Nic
+#        if ltype is 'xrd':
+#            diff_core = (-2, -1) # it will always be this
+#            diff_slice = tuple(dims[:-2])
+#            data_obj.add_pattern("DIFFRACTION", core_dims=diff_core,
+#                                 slice_dims=diff_slice)
+
         print self.get_cal_path()
         calibrationfile = h5py.File(self.get_cal_path(), 'r')
         try:

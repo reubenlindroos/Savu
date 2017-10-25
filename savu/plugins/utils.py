@@ -94,6 +94,7 @@ def plugin_loader(exp, plugin_dict, **kwargs):
     logging.debug("Running plugin loader")
 
     try:
+        print "Loading the plugin", plugin_dict['id']
         plugin = get_plugin(plugin_dict['id'])
     except Exception as e:
         logging.error("failed to load the plugin")
@@ -215,7 +216,6 @@ def get_plugins_paths():
 def blockPrint():
     import tempfile
     fname = tempfile.mkdtemp() + '/unwanted_prints.txt'
-    #sys.stdout = open(os.devnull, 'w')
     sys.stdout = open(fname, 'w')
 
 

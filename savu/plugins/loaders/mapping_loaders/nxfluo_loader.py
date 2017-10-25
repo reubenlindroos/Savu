@@ -21,10 +21,15 @@
 
 """
 
+import numpy as np
+
 from savu.plugins.loaders.mapping_loaders.base_multi_modal_loader \
     import BaseMultiModalLoader
 
 from savu.plugins.utils import register_plugin
+
+# Update this in the class docstring if you change it
+DEFAULT_FLUO_PATH = '/entry1/instrument/fluorescence/data'
 
 
 @register_plugin
@@ -34,51 +39,42 @@ class NxfluoLoader(BaseMultiModalLoader):
     :param fluo_offset: fluo scale offset. Default: 0.0.
     :param fluo_gain: fluo gain. Default: 0.01.
     :param name: The name assigned to the dataset. Default: 'fluo'.
+    :param fluo_path: The path to the data in the nexus \
+        file.  Default:'/entry1/instrument/fluorescence/data' .
     """
 
     def __init__(self, name='NxfluoLoader'):
         super(NxfluoLoader, self).__init__(name)
+        self.default_path = DEFAULT_FLUO_PATH
 
     def setup(self):
-        """ Define the input nexus file.
+        # check if this is really a standard Nexus file
+        path = self.parameters['fluo_path']
+        nxfluo = True if path == self.default_path else False
+        func = self._get_nx_entry if nxfluo else self._get_nonstandard_entry
+        func(path)
 
-        :param path: The full path of the NeXus file to load.
-        :type path: str
-        """
-        import numpy as np
-        data_str = '/instrument/fluorescence/data'
-        data_obj, fluo_entry = self.multi_modal_setup('NXfluo', data_str, self.parameters['name'])
-        # the application meta data
-        mData = data_obj.meta_data
-        npts = data_obj.data.shape[-1]
-        average = np.ones(npts)
-        # and the energy axis
+    def _get_nx_entry(self, path):
+        data_obj, fluo_entry = \
+            self.multi_modal_setup('NXfluo', path, self.parameters['name'])
+
+        npts = data_obj.data.shape[self.get_motor_type('None')[0]]
         gain = self.parameters["fluo_gain"]
         energy = np.arange(self.parameters["fluo_offset"], gain*npts, gain)
-        mono_energy = data_obj.backing_file[fluo_entry.name +
-                                            '/instrument/monochromator/energy'
-                                            ].value
-        monitor = data_obj.backing_file[fluo_entry.name +
-                                        '/monitor/data'
-                                        ].value
-        mData.set("energy", energy)
-        # global since it is to do with the beam
-        mData.set("mono_energy", mono_energy)
-        mData.set("monitor", monitor)
-        mData.set("average", average)
-        #and get the mono energy
+        mono_path = fluo_entry.name + '/instrument/monochromator/energy'
+        mono_energy = data_obj.backing_file[mono_path].value
+        monitor_path = fluo_entry.name + '/monitor/data'
+        monitor = data_obj.backing_file[monitor_path].value
 
-        self.set_motors(data_obj, fluo_entry, 'fluo')
-        rotation_angle = \
-            data_obj.backing_file[fluo_entry.name + '/sample/theta'].value
-        if rotation_angle.ndim > 1:
-            rotation_angle = rotation_angle[:,0]
-
-        data_obj.meta_data.set('rotation_angle', rotation_angle)
-
-        self.add_patterns_based_on_acquisition(data_obj, 'fluo')
+        data_obj.meta_data.set("energy", energy)
+        data_obj.meta_data.set("mono_energy", mono_energy)
+        data_obj.meta_data.set("monitor", monitor)
+        data_obj.meta_data.set("average", np.ones(npts))
 
         slice_dir = tuple(range(len(data_obj.data.shape)-1))
         data_obj.add_pattern("SPECTRUM", core_dims=(-1,), slice_dims=slice_dir)
 
         self.set_data_reduction_params(data_obj)
+
+    def _get_non_standard_entry(self, path):
+        pass
