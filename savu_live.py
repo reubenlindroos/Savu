@@ -29,13 +29,19 @@ def savu_interp(x):
     plugin._populate_default_parameters()
     return plugin.process_frames([x])
 
+def savu_down(x):
+    from savu.plugins.reshape.downsample_filter import DownsampleFilter
+    plugin = DownsampleFilter()
+    plugin._populate_default_parameters()
+    return plugin.process_frames([x])
 
 from Queue import Queue
 input_q = Queue()
 remote_q = client.scatter(input_q)
-inc_q = client.map(savu_bregman, remote_q)
-double_q = client.map(savu_interp, inc_q)
-result_q = client.gather(double_q)
+breg_q = client.map(savu_bregman, remote_q)
+interp_q = client.map(savu_interp, breg_q)
+down_q = client.map(savu_down, interp_q)
+result_q = client.gather(down_q)
 
 print(result_q.qsize()) 
 
