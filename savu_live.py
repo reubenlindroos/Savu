@@ -19,17 +19,23 @@ def double(x):
 
 def savu_bregman(x):
     from savu.plugins.filters.denoise_bregman_filter import DenoiseBregmanFilter
-    db = DenoiseBregmanFilter()
-    db._populate_default_parameters()
-    return db.process_frames([x])
+    plugin = DenoiseBregmanFilter()
+    plugin._populate_default_parameters()
+    return plugin.process_frames([x])
+
+def savu_interp(x):
+    from savu.plugins.filters.image_interpolation import ImageInterpolation
+    plugin = ImageInterpolation()
+    plugin._populate_default_parameters()
+    return plugin.process_frames([x])
 
 
 from Queue import Queue
 input_q = Queue()
 remote_q = client.scatter(input_q)
 inc_q = client.map(savu_bregman, remote_q)
-#double_q = client.map(double, inc_q)
-result_q = client.gather(inc_q)
+double_q = client.map(savu_interp, inc_q)
+result_q = client.gather(double_q)
 
 print(result_q.qsize()) 
 
@@ -48,7 +54,8 @@ load_thread.start()
 for i in range(100):
     print("Size of queue is %i" % (result_q.qsize()))
     for j in range(result_q.qsize()):
-        print("getting item %i from queue, mean value is %f" % (j, result_q.get().mean()))
+        data = result_q.get()
+        print("getting item %i from queue, (%i,%i) mean value is %f" % (j, data.shape[0], data.shape[1], data.mean()))
     sleep(1)
 
  
