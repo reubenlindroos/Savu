@@ -1,3 +1,5 @@
+# use http://localhost:8787/status to see the dask status, its quite cool
+
 from distributed import Client
 client = Client()
 print(client)
