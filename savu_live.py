@@ -9,40 +9,20 @@ from random import random
 
 import numpy as np
 
-def inc(x):
-    from random import random
-    sleep(random() * 2)
-    return x + 1
-
-def double(x):
-    from random import random
-    sleep(random())
-    return 2 * x
-
-def savu_bregman(x):
-    from savu.plugins.filters.denoise_bregman_filter import DenoiseBregmanFilter
-    plugin = DenoiseBregmanFilter()
-    plugin._populate_default_parameters()
-    return plugin.process_frames([x])
-
-def savu_interp(x):
-    from savu.plugins.filters.image_interpolation import ImageInterpolation
-    plugin = ImageInterpolation()
-    plugin._populate_default_parameters()
-    return plugin.process_frames([x])
-
-def savu_down(x):
-    from savu.plugins.reshape.downsample_filter import DownsampleFilter
-    plugin = DownsampleFilter()
+def savu_plugin_runner(x, clazz=None):
+    plugin = clazz()
     plugin._populate_default_parameters()
     return plugin.process_frames([x])
 
 from Queue import Queue
 input_q = Queue()
 remote_q = client.scatter(input_q)
-breg_q = client.map(savu_bregman, remote_q)
-interp_q = client.map(savu_interp, breg_q)
-down_q = client.map(savu_down, interp_q)
+from savu.plugins.filters.denoise_bregman_filter import DenoiseBregmanFilter
+breg_q = client.map(savu_plugin_runner, remote_q, clazz=DenoiseBregmanFilter)
+from savu.plugins.filters.image_interpolation import ImageInterpolation
+interp_q = client.map(savu_plugin_runner, breg_q, clazz=ImageInterpolation)
+from savu.plugins.reshape.downsample_filter import DownsampleFilter
+down_q = client.map(savu_plugin_runner, interp_q, clazz=DownsampleFilter)
 result_q = client.gather(down_q)
 
 print(result_q.qsize()) 
@@ -52,7 +32,7 @@ def load_data(q):
     while i < 100:
         print("putting %i" %(i))
         q.put(np.random.rand(1,500,500))
-        #sleep(random())
+        sleep(random())
         i += 1
 
 from threading import Thread
