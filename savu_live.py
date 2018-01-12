@@ -5,6 +5,7 @@ print(client)
 from time import sleep
 from random import random
 
+import numpy as np
 
 def inc(x):
     from random import random
@@ -16,12 +17,19 @@ def double(x):
     sleep(random())
     return 2 * x
 
+def savu_bregman(x):
+    from savu.plugins.filters.denoise_bregman_filter import DenoiseBregmanFilter
+    db = DenoiseBregmanFilter()
+    db._populate_default_parameters()
+    return db.process_frames([x])
+
+
 from Queue import Queue
 input_q = Queue()
 remote_q = client.scatter(input_q)
-inc_q = client.map(inc, remote_q)
-double_q = client.map(double, inc_q)
-result_q = client.gather(double_q)
+inc_q = client.map(savu_bregman, remote_q)
+#double_q = client.map(double, inc_q)
+result_q = client.gather(inc_q)
 
 print(result_q.qsize()) 
 
@@ -29,8 +37,8 @@ def load_data(q):
     i = 0
     while i < 100:
         print("putting %i" %(i))
-        q.put(i)
-        sleep(random())
+        q.put(np.random.rand(1,500,500))
+        #sleep(random())
         i += 1
 
 from threading import Thread
@@ -39,6 +47,8 @@ load_thread.start()
 
 for i in range(100):
     print("Size of queue is %i" % (result_q.qsize()))
+    for j in range(result_q.qsize()):
+        print("getting item %i from queue, mean value is %f" % (j, result_q.get().mean()))
     sleep(1)
 
  
