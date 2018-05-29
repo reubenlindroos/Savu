@@ -1,6 +1,7 @@
 # use http://localhost:8787/status to see the dask status, its quite cool
 
 from distributed import Client
+from savu.data.plugin_list import PluginList
 client = Client()
 print(client)
 
@@ -8,6 +9,9 @@ from time import sleep
 from random import random
 
 import numpy as np
+
+pl = PluginList()
+pl._populate_plugin_list("/media/mark/_scratch/git/Savu/test_data/test_process_lists/denoise_bregman_test.nxs")
 
 def savu_plugin_runner(x, clazz=None):
     plugin = clazz()
@@ -42,7 +46,7 @@ print(result_q.qsize())
 
 def load_data(q):
     i = 0
-    while i < 10:
+    while i < 100:
         print("putting %i" %(i))
         q.put(np.random.rand(1,500,500))
         sleep(random())
